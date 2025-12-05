@@ -103,6 +103,24 @@ class GitHubClient:
         r.raise_for_status()
         return r.json()
 
+    def get_commit_diff(self, owner: str, repo: str, sha: str) -> str:
+        r = self._client.get(f"/repos/{owner}/{repo}/commits/{sha}", headers={"Accept": "application/vnd.github.v3.diff"})
+        r.raise_for_status()
+        return r.text
+
+    def post_commit_comment(self, owner: str, repo: str, sha: str, body: str) -> None:
+        r = self._client.post(f"/repos/{owner}/{repo}/commits/{sha}/comments", json={"body": body})
+        r.raise_for_status()
+
+    def pulls_for_commit(self, owner: str, repo: str, sha: str) -> List[Dict]:
+        # List pull requests associated with a commit
+        r = self._client.get(
+            f"/repos/{owner}/{repo}/commits/{sha}/pulls",
+            headers={"Accept": "application/vnd.github+json, application/vnd.github.groot-preview+json"},
+        )
+        r.raise_for_status()
+        return r.json()
+
     @staticmethod
     def review_marker(repo: str, sha: str) -> str:
         short = sha[:7]
