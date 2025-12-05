@@ -1,0 +1,6 @@
+*.egg-info
+*_cache
+build
+.roastbot_state.json
+config.yaml
+__pycache__
