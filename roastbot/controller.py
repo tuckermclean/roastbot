@@ -125,13 +125,27 @@ class Controller:
         logger.info("Posted review on %s commit %s", f"{owner}/{repo}", sha[:7])
 
     @staticmethod
+    def _format_issues(issues) -> str:
+        if issues is None:
+            return "No issues found."
+        if isinstance(issues, str):
+            return issues
+        try:
+            items = [str(i) for i in list(issues)]
+        except Exception:
+            return str(issues)
+        if not items:
+            return "No issues found."
+        return "\n\n---\n\n".join(items)
+
+    @staticmethod
     def _format_review_body(pr, resp, prompt: str) -> str:
         marker = GitHubClient.review_marker(f"{pr.owner}/{pr.repo}", pr.head_sha)
         return (
             f"{marker}\n"
             f"# 🔥 RoastBot Review\n\n ### For {pr.owner}/{pr.repo} PR #{pr.number}: {pr.title}\n\n"
             f"📃 Summary\n-------\n{resp.summary}\n\n"
-            f"😖 Issues\n------\n" + "\n".join(f"{i}\n\n---\n\n" for i in resp.issues) + "\n\n"
+            f"😖 Issues\n------\n" + Controller._format_issues(resp.issues) + "\n\n"
             f"👍 Praise\n------\n{resp.praise}\n\n"
             f"😈 Killer Roast\n------------\n{resp.one_killer_roast_line}\n\n"
             f"Debug: prompt excerpt (first 60 lines)\n---------------------------------------\n" + "\n".join(prompt.splitlines()[:60])
@@ -145,7 +159,7 @@ class Controller:
             f"{marker}\n"
             f"# 🔥 RoastBot Review\n\n ### For {owner}/{repo} commit {sha[:7]} on {branch}: {title}\n\n"
             f"📃 Summary\n-------\n{resp.summary}\n\n"
-            f"😖 Issues\n------\n" + "\n".join(f"{i}\n\n---\n\n" for i in resp.issues) + "\n\n"
+            f"😖 Issues\n------\n" + Controller._format_issues(resp.issues) + "\n\n"
             f"👍 Praise\n------\n{resp.praise}\n\n"
             f"😈 Killer Roast\n------------\n{resp.one_killer_roast_line}\n\n"
             f"Debug: prompt excerpt (first 60 lines)\n---------------------------------------\n" + "\n".join(prompt.splitlines()[:60])
