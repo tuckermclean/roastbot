@@ -119,11 +119,19 @@ class GitHubClient:
         r.raise_for_status()
         return r.json()
 
-    def list_commits(self, full_repo: str, branch: str, per_page: int = 30) -> List[Dict]:
+    def list_commits(self, full_repo: str, branch: str) -> List[Dict]:
         owner, repo = full_repo.split("/", 1)
-        r = self._client.get(f"/repos/{owner}/{repo}/commits", params={"sha": branch, "per_page": per_page})
-        r.raise_for_status()
-        return r.json()
+        commits: List[Dict] = []
+        page = 1
+        while True:
+            r = self._client.get(f"/repos/{owner}/{repo}/commits", params={"sha": branch, "per_page": 100, "page": page})
+            r.raise_for_status()
+            data = r.json()
+            commits.extend(data)
+            if len(data) < 100:
+                break
+            page += 1
+        return commits
 
     def get_commit_diff(self, owner: str, repo: str, sha: str) -> str:
         r = self._client.get(f"/repos/{owner}/{repo}/commits/{sha}", headers={"Accept": "application/vnd.github.v3.diff"})

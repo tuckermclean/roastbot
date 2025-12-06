@@ -151,24 +151,24 @@ class Controller:
     @staticmethod
     def _format_review_body(pr, resp, prompt: str) -> str:
         marker = GitHubClient.review_marker(f"{pr.owner}/{pr.repo}", pr.head_sha)
-        return (
+        return ''.join([
             f"{marker}\n"
             f"# 🔥 RoastBot Review\n\n ### For {pr.owner}/{pr.repo} PR #{pr.number}: {pr.title}\n\n"
             f"📃 Summary\n-------\n{resp.summary}\n\n"
             f"😖 Issues\n------\n" + Controller._format_issues(resp.issues) + "\n\n"
             f"👍 Praise\n------\n{resp.praise}\n\n"
             f"😈 Killer Roast\n------------\n{resp.one_killer_roast_line}\n\n"
-        )
+        ])
 
     @staticmethod
     def _format_commit_body(owner: str, repo: str, sha: str, branch: str, subject_line: str, resp, prompt: str) -> str:
         marker = GitHubClient.review_marker(f"{owner}/{repo}", sha)
         title = subject_line or sha[:7]
-        return (
+        return ''.join([
             f"{marker}\n"
             f"# 🔥 RoastBot Review\n\n ### For {owner}/{repo} commit {sha[:7]} on {branch}: {title}\n\n"
             f"📃 Summary\n-------\n{resp.summary}\n\n"
             f"😖 Issues\n------\n" + Controller._format_issues(resp.issues) + "\n\n"
             f"👍 Praise\n------\n{resp.praise}\n\n"
             f"😈 Killer Roast\n------------\n{resp.one_killer_roast_line}\n\n"
-        )
+        ])
