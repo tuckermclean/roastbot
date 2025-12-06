@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional
 
@@ -36,7 +37,7 @@ class GitHubClient:
         )
 
     def list_open_prs(self, full_repo: str) -> List[PR]:
-        owner, repo = full_repo.split("/")
+        owner, repo = full_repo.split("/", 1)
         prs: List[PR] = []
         page = 1
         while True:
@@ -78,6 +79,27 @@ class GitHubClient:
             page += 1
         return files
 
+    def _is_git_hash(self, s):
+        return bool(re.fullmatch(r'^[0-9a-fA-F]{7,40}$', s))
+
+    def get_pr_commits(self, owner: str, repo: str, number: int) -> List[str]:
+        commits: List[str] = []
+        page = 1
+        while True:
+            r = self._client.get(f"/repos/{owner}/{repo}/pulls/{number}/commits", params={"per_page": 100, "page": page})
+            r.raise_for_status()
+            data = r.json()
+            for commit in data:
+                sha = commit['sha']
+                if self._is_git_hash(sha):
+                    commits.append(sha)
+                else:
+                    logger.warning(f"Problem with _is_git_hash, {sha} isn't a Git hash")
+            if len(data) < 100:
+                break
+            page += 1
+        return commits
+
     def post_pr_review(self, owner: str, repo: str, number: int, body: str, event: str = "COMMENT") -> None:
         payload = {"body": body, "event": event}
         r = self._client.post(f"/repos/{owner}/{repo}/pulls/{number}/reviews", json=payload)
@@ -97,9 +119,35 @@ class GitHubClient:
         r.raise_for_status()
         return r.json()
 
-    def list_commits(self, full_repo: str, branch: str, per_page: int = 30) -> List[Dict]:
-        owner, repo = full_repo.split("/")
-        r = self._client.get(f"/repos/{owner}/{repo}/commits", params={"sha": branch, "per_page": per_page})
+    def list_commits(self, full_repo: str, branch: str) -> List[Dict]:
+        owner, repo = full_repo.split("/", 1)
+        commits: List[Dict] = []
+        page = 1
+        while True:
+            r = self._client.get(f"/repos/{owner}/{repo}/commits", params={"sha": branch, "per_page": 100, "page": page})
+            r.raise_for_status()
+            data = r.json()
+            commits.extend(data)
+            if len(data) < 100:
+                break
+            page += 1
+        return commits
+
+    def get_commit_diff(self, owner: str, repo: str, sha: str) -> str:
+        r = self._client.get(f"/repos/{owner}/{repo}/commits/{sha}", headers={"Accept": "application/vnd.github.v3.diff"})
+        r.raise_for_status()
+        return r.text
+
+    def post_commit_comment(self, owner: str, repo: str, sha: str, body: str) -> None:
+        r = self._client.post(f"/repos/{owner}/{repo}/commits/{sha}/comments", json={"body": body})
+        r.raise_for_status()
+
+    def pulls_for_commit(self, owner: str, repo: str, sha: str) -> List[Dict]:
+        # List pull requests associated with a commit
+        r = self._client.get(
+            f"/repos/{owner}/{repo}/commits/{sha}/pulls",
+            headers={"Accept": "application/vnd.github+json, application/vnd.github.groot-preview+json"},
+        )
         r.raise_for_status()
         return r.json()
 

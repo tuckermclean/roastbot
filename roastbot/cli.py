@@ -1,6 +1,4 @@
 from __future__ import annotations
-# Note: Keep PR sizes small; this CLI supports polling but use sensible intervals.
-
 
 import logging
 import time
