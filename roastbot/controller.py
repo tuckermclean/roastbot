@@ -66,7 +66,7 @@ class Controller:
             owner, repo = full_repo.split("/", 1)
             for branch in (self.settings.branch_filters or []):
                 try:
-                    commits = self.gh.list_commits(full_repo, branch, per_page=30)
+                    commits = self.gh.list_commits(full_repo, branch)
                 except Exception as e:
                     logger.warning("Failed listing commits for %s %s: %s", full_repo, branch, e)
                     continue
