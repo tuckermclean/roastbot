@@ -53,9 +53,7 @@ class OpenAIEngine:
         except Exception:
             data = {}
         
-        pprint(data)
         parsed = coerce_roast_json(data)
-        pprint(parsed)
         # If the model didn't actually give us anything useful, fall back to raw content
         if not (parsed.summary or parsed.issues or parsed.praise):
             logger.warning("OpenAI roast JSON was empty; falling back to raw content")

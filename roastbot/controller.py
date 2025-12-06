@@ -52,11 +52,18 @@ class Controller:
                 logger.debug("Skipping PR #%s base %s not in filters", pr.number, pr.base_ref)
                 continue
             self._review_pr(pr)
+            # Mark all commits in this PR as reviewed
+            try:
+                owner, repo = full_repo.split("/", 1)
+                commits = self.gh.get_pr_commits(owner, repo, pr.number)
+                for sha in commits:
+                    self.state.mark_reviewed(full_repo, sha)
+            except Exception as e:
+                logger.warning("Error marking commits from PR #%s: %s", pr.number, e)
             self.state.mark_reviewed(full_repo, pr.head_sha)
-
         # Optionally review branch commits that are not part of any PR
         if self.settings.review_commits:
-            owner, repo = full_repo.split("/")
+            owner, repo = full_repo.split("/", 1)
             for branch in (self.settings.branch_filters or []):
                 try:
                     commits = self.gh.list_commits(full_repo, branch, per_page=30)
@@ -83,7 +90,10 @@ class Controller:
                             continue
                     except Exception as e:
                         logger.debug("pulls_for_commit failed for %s: %s; proceeding", sha[:7], e)
-                    self._review_commit(full_repo, owner, repo, branch, c)
+                    try:
+                        self._review_commit(full_repo, owner, repo, branch, c)
+                    except Exception as e:
+                        logger.error("_review_commit failed for %s: %s; not reviewed", sha[:7], e)
                     self.state.mark_reviewed(full_repo, sha)
 
     def _review_pr(self, pr) -> None:
@@ -148,7 +158,6 @@ class Controller:
             f"😖 Issues\n------\n" + Controller._format_issues(resp.issues) + "\n\n"
             f"👍 Praise\n------\n{resp.praise}\n\n"
             f"😈 Killer Roast\n------------\n{resp.one_killer_roast_line}\n\n"
-            f"Debug: prompt excerpt (first 60 lines)\n---------------------------------------\n" + "\n".join(prompt.splitlines()[:60])
         )
 
     @staticmethod
@@ -162,5 +171,4 @@ class Controller:
             f"😖 Issues\n------\n" + Controller._format_issues(resp.issues) + "\n\n"
             f"👍 Praise\n------\n{resp.praise}\n\n"
             f"😈 Killer Roast\n------------\n{resp.one_killer_roast_line}\n\n"
-            f"Debug: prompt excerpt (first 60 lines)\n---------------------------------------\n" + "\n".join(prompt.splitlines()[:60])
         )

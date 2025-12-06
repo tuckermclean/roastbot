@@ -36,7 +36,7 @@ class GitHubClient:
         )
 
     def list_open_prs(self, full_repo: str) -> List[PR]:
-        owner, repo = full_repo.split("/")
+        owner, repo = full_repo.split("/", 1)
         prs: List[PR] = []
         page = 1
         while True:
@@ -78,6 +78,20 @@ class GitHubClient:
             page += 1
         return files
 
+    def get_pr_commits(self, owner: str, repo: str, number: int) -> List[str]:
+        commits: List[str] = []
+        page = 1
+        while True:
+            r = self._client.get(f"/repos/{owner}/{repo}/pulls/{number}/commits", params={"per_page": 100, "page": page})
+            r.raise_for_status()
+            data = r.json()
+            for commit in data:
+                commits.append(commit.sha)
+            if len(data < 100):
+                break
+            page += 1
+        return commits
+
     def post_pr_review(self, owner: str, repo: str, number: int, body: str, event: str = "COMMENT") -> None:
         payload = {"body": body, "event": event}
         r = self._client.post(f"/repos/{owner}/{repo}/pulls/{number}/reviews", json=payload)
@@ -98,7 +112,7 @@ class GitHubClient:
         return r.json()
 
     def list_commits(self, full_repo: str, branch: str, per_page: int = 30) -> List[Dict]:
-        owner, repo = full_repo.split("/")
+        owner, repo = full_repo.split("/", 1)
         r = self._client.get(f"/repos/{owner}/{repo}/commits", params={"sha": branch, "per_page": per_page})
         r.raise_for_status()
         return r.json()
