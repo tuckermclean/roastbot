@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional
 
@@ -78,6 +79,9 @@ class GitHubClient:
             page += 1
         return files
 
+    def _is_git_hash(self, s):
+        return bool(re.fullmatch(r"[0-9a-fA-F]{4,40}", s))
+
     def get_pr_commits(self, owner: str, repo: str, number: int) -> List[str]:
         commits: List[str] = []
         page = 1
@@ -86,8 +90,12 @@ class GitHubClient:
             r.raise_for_status()
             data = r.json()
             for commit in data:
-                commits.append(commit.sha)
-            if len(data < 100):
+                sha = commit['commit']['tree']['sha']
+                if self._is_git_hash(sha):
+                    commits.append(sha)
+                else:
+                    logger.warning(f"Problem with _is_git_hash, {sha} isn't a Git hash")
+            if len(data) < 100:
                 break
             page += 1
         return commits
