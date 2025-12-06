@@ -80,7 +80,7 @@ class GitHubClient:
         return files
 
     def _is_git_hash(self, s):
-        return bool(re.fullmatch(r"[0-9a-fA-F]{4,40}", s))
+        return bool(re.fullmatch(r'^[0-9a-fA-F]{7,40}$', s))
 
     def get_pr_commits(self, owner: str, repo: str, number: int) -> List[str]:
         commits: List[str] = []
@@ -90,7 +90,7 @@ class GitHubClient:
             r.raise_for_status()
             data = r.json()
             for commit in data:
-                sha = commit['commit']['tree']['sha']
+                sha = commit['sha']
                 if self._is_git_hash(sha):
                     commits.append(sha)
                 else:
